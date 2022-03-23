@@ -1,0 +1,717 @@
+<?xml version="1.0" encoding="utf-8"?><ManagementPack ContentReadable="true" SchemaVersion="2.0" OriginalSchemaVersion="2.0" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+  <Manifest>
+    <Identity>
+      <ID>Linux.NFS.Agnostic</ID>
+      <Version>1.0.0.1</Version>
+    </Identity>
+    <Name>Linux.NFS.Agnostic</Name>
+    <References>
+      <Reference Alias="MicrosoftLinuxUniversalLibrary7510500">
+        <ID>Microsoft.Linux.Universal.Library</ID>
+        <Version>10.19.1147.0</Version>
+        <PublicKeyToken>31bf3856ad364e35</PublicKeyToken>
+      </Reference>
+      <Reference Alias="MSDL">
+        <ID>Microsoft.SystemCenter.DataWarehouse.Library</ID>
+        <Version>10.19.10050.0</Version>
+        <PublicKeyToken>31bf3856ad364e35</PublicKeyToken>
+      </Reference>
+      <Reference Alias="UAL">
+        <ID>Unix.Authoring.Library</ID>
+        <Version>7.3.1.2</Version>
+        <PublicKeyToken>a0ae1bc76c673799</PublicKeyToken>
+      </Reference>
+      <Reference Alias="Perf">
+        <ID>System.Performance.Library</ID>
+        <Version>7.0.8443.6</Version>
+        <PublicKeyToken>31bf3856ad364e35</PublicKeyToken>
+      </Reference>
+      <Reference Alias="MicrosoftSystemCenterInstanceGroupLibrary7585010">
+        <ID>Microsoft.SystemCenter.InstanceGroup.Library</ID>
+        <Version>7.5.8501.0</Version>
+        <PublicKeyToken>31bf3856ad364e35</PublicKeyToken>
+      </Reference>
+      <Reference Alias="System">
+        <ID>System.Library</ID>
+        <Version>7.5.8501.0</Version>
+        <PublicKeyToken>31bf3856ad364e35</PublicKeyToken>
+      </Reference>
+      <Reference Alias="SC">
+        <ID>Microsoft.SystemCenter.Library</ID>
+        <Version>7.0.8448.6</Version>
+        <PublicKeyToken>31bf3856ad364e35</PublicKeyToken>
+      </Reference>
+      <Reference Alias="MSL">
+        <ID>Microsoft.Linux.Library</ID>
+        <Version>10.19.1147.0</Version>
+        <PublicKeyToken>31bf3856ad364e35</PublicKeyToken>
+      </Reference>
+      <Reference Alias="MUL">
+        <ID>Microsoft.Unix.Library</ID>
+        <Version>10.19.1147.0</Version>
+        <PublicKeyToken>31bf3856ad364e35</PublicKeyToken>
+      </Reference>
+      <Reference Alias="Health">
+        <ID>System.Health.Library</ID>
+        <Version>7.0.8443.6</Version>
+        <PublicKeyToken>31bf3856ad364e35</PublicKeyToken>
+      </Reference>
+    </References>
+  </Manifest>
+  <TypeDefinitions>
+    <EntityTypes>
+      <ClassTypes>
+        <ClassType ID="Linux.NFS.Seed.Computer.Class" Accessibility="Public" Abstract="false" Base="MUL!Microsoft.Unix.Computer" Hosted="false" Singleton="false" Extension="false">
+          <Property ID="AreNFSPresent" Type="string" AutoIncrement="false" Key="false" CaseSensitive="false" MaxLength="256" MinLength="0" Required="false" Scale="0" />
+        </ClassType>
+        <ClassType ID="Linux.NFS.Mountpoint.Class" Accessibility="Public" Abstract="false" Base="MSL!Microsoft.Linux.LogicalDisk" Hosted="true" Singleton="false" Extension="false">
+          <Property ID="NFSFileSystem" Type="string" AutoIncrement="false" Key="false" CaseSensitive="false" MaxLength="256" MinLength="0" Required="false" Scale="0" />
+        </ClassType>
+      </ClassTypes>
+    </EntityTypes>
+    <ModuleTypes>
+      <DataSourceModuleType ID="Linux.NFS.Seed.Computer.Class.Discovery.DS" Accessibility="Public" Batching="false">
+        <Configuration>
+          <xsd:element minOccurs="1" name="IntervalSeconds" type="xsd:integer" xmlns:xsd="http://www.w3.org/2001/XMLSchema" />
+          <xsd:element minOccurs="1" name="TargetSystem" type="xsd:string" xmlns:xsd="http://www.w3.org/2001/XMLSchema" />
+          <xsd:element minOccurs="1" name="ShellCommand" type="xsd:string" xmlns:xsd="http://www.w3.org/2001/XMLSchema" />
+          <xsd:element minOccurs="1" name="TimeOutSeconds" type="xsd:integer" xmlns:xsd="http://www.w3.org/2001/XMLSchema" />
+        </Configuration>
+        <OverrideableParameters>
+          <OverrideableParameter ID="IntervalSeconds" Selector="$Config/IntervalSeconds$" ParameterType="int" />
+          <OverrideableParameter ID="TimeOutSeconds" Selector="$Config/TimeOutSeconds$" ParameterType="int" />
+        </OverrideableParameters>
+        <ModuleImplementation Isolation="Any">
+          <Composite>
+            <MemberModules>
+              <DataSource ID="DS" TypeID="System!System.Scheduler">
+                <Scheduler>
+                  <SimpleReccuringSchedule>
+                    <Interval>$Config/IntervalSeconds$</Interval>
+                  </SimpleReccuringSchedule>
+                  <ExcludeDates />
+                </Scheduler>
+              </DataSource>
+              <ProbeAction ID="Probe" TypeID="MUL!Microsoft.Unix.WSMan.Invoke.ProbeAction">
+                <TargetSystem>$Config/TargetSystem$</TargetSystem>
+                <Uri>http://schemas.microsoft.com/wbem/wscim/1/cim-schema/2/SCX_OperatingSystem?__cimnamespace=root/scx</Uri>
+                <Selector />
+                <InvokeAction>ExecuteShellCommand</InvokeAction>
+                <Input>&lt;p:ExecuteShellCommand_INPUT xmlns:p="http://schemas.microsoft.com/wbem/wscim/1/cim-schema/2/SCX_OperatingSystem"&gt;&lt;p:command&gt;$Config/ShellCommand$&lt;/p:command&gt;&lt;p:timeout&gt;$Config/TimeOutSeconds$&lt;/p:timeout&gt;&lt;/p:ExecuteShellCommand_INPUT&gt;</Input>
+              </ProbeAction>
+              <ConditionDetection ID="Mapper" TypeID="System!System.Discovery.FilteredClassSnapshotDataMapper">
+                <Expression>
+                  <SimpleExpression>
+                    <ValueExpression>
+                      <XPathQuery Type="String">//*[local-name()="StdOut"]</XPathQuery>
+                    </ValueExpression>
+                    <Operator>Equal</Operator>
+                    <ValueExpression>
+                      <Value Type="String">1</Value>
+                    </ValueExpression>
+                  </SimpleExpression>
+                </Expression>
+                <ClassId>$MPElement[Name='Linux.NFS.Seed.Computer.Class']$</ClassId>
+                <InstanceSettings>
+                  <Settings>
+                    <Setting>
+                      <Name>$MPElement[Name='Linux.NFS.Seed.Computer.Class']/AreNFSPresent$</Name>
+                      <Value>Yes</Value>
+                    </Setting>
+                    <Setting>
+                      <Name>$MPElement[Name='System!System.Entity']/DisplayName$</Name>
+                      <Value>$Config/TargetSystem$</Value>
+                    </Setting>
+                    <Setting>
+                      <Name>$MPElement[Name='MUL!Microsoft.Unix.Computer']/PrincipalName$</Name>
+                      <Value>$Config/TargetSystem$</Value>
+                    </Setting>
+                  </Settings>
+                </InstanceSettings>
+              </ConditionDetection>
+            </MemberModules>
+            <Composition>
+              <Node ID="Mapper">
+                <Node ID="Probe">
+                  <Node ID="DS" />
+                </Node>
+              </Node>
+            </Composition>
+          </Composite>
+        </ModuleImplementation>
+        <OutputType>System!System.Discovery.Data</OutputType>
+      </DataSourceModuleType>
+    </ModuleTypes>
+  </TypeDefinitions>
+  <Monitoring>
+    <Discoveries>
+      <Discovery ID="Linux.NFS.Seed.Computer.Class.Discovery" Enabled="true" Target="MUL!Microsoft.Unix.Computer" ConfirmDelivery="true" Remotable="true" Priority="Normal">
+        <Category>Discovery</Category>
+        <DiscoveryTypes>
+          <DiscoveryClass TypeID="Linux.NFS.Seed.Computer.Class" />
+        </DiscoveryTypes>
+        <DataSource ID="DS" TypeID="Linux.NFS.Seed.Computer.Class.Discovery.DS">
+          <IntervalSeconds>14400</IntervalSeconds>
+          <TargetSystem>$Target/Property[Type="MUL!Microsoft.Unix.Computer"]/PrincipalName$</TargetSystem>
+          <ShellCommand>if [ $(df -t nfs4 2&amp;gt;/dev/null | wc -l) != 0 ]; then echo 1; else echo 0; fi;</ShellCommand>
+          <TimeOutSeconds>120</TimeOutSeconds>
+        </DataSource>
+      </Discovery>
+      <Discovery ID="Linux.NFS.Mountpoint.Class.Discovery" Enabled="true" Target="Linux.NFS.Seed.Computer.Class" ConfirmDelivery="true" Remotable="true" Priority="Normal">
+        <Category>Discovery</Category>
+        <DiscoveryTypes>
+          <DiscoveryClass TypeID="Linux.NFS.Mountpoint.Class" />
+        </DiscoveryTypes>
+        <DataSource ID="DS" TypeID="UAL!Unix.Authoring.TimedShellCommand.PropertyBag.Discovery.DataSource">
+          <Interval>14400</Interval>
+          <TargetSystem>$Target/Property[Type="MUL!Microsoft.Unix.Computer"]/NetworkName$</TargetSystem>
+          <ShellCommand>df -kTt nfs4 | awk -F ' nfs4' '{printf \"\\\"%s\\\"\",\$1} {print \$2}' | awk -F\\\" '{for(i=1;i&amp;lt;=NF;i+=2)gsub(/[[:blank:]]/,\",\",\$i)}1' OFS=\\\" | tr -s ',' | awk -F \",\" '{print \$1 \",\" \$2 \",\" \$6}' | tr -d \"\\\"\" | tail -n +2</ShellCommand>
+          <Timeout>60</Timeout>
+          <UserName>$RunAs[Name="MUL!Microsoft.Unix.ActionAccount"]/UserName$</UserName>
+          <Password>$RunAs[Name="MUL!Microsoft.Unix.ActionAccount"]/Password$</Password>
+          <PSScriptName>ParseWSManResults.ps1</PSScriptName>
+          <PSScriptBody>
+            param([string]$StdOut,[string]$StdErr,[string]$ReturnCode)
+            $api = New-Object -comObject 'MOM.ScriptAPI'
+			#$api.LogScriptEvent("ParseWSManResults.ps1",999,0,"Shell Script Starting: + `n StdOut=$StdOut + `n StdErr=$StdErr + `n ReturnCode=$ReturnCode")
+            if ($ReturnCode -eq "0")
+            {
+				foreach ($line in $StdOut.Split("`n"))
+				{
+
+					$row=$line.Split(",")
+					$fileSys=$row[0].Trim()
+					$size=$row[1].Trim()
+					$path=$row[2].Trim()
+
+					if ($fileSys -ne "" -and $fileSys -ne $null -and $fileSys -ne "FileSystem")
+					{
+						$bag = $api.CreatePropertyBag()
+						$bag.AddValue("FileSystem","$fileSys")
+						$bag.AddValue("Size","$size")
+						$bag.AddValue("Path","$path")
+						$bag
+					}
+				}
+            }
+            Else
+            {
+				$api.LogScriptEvent("ParseWSManResults.ps1",1000,2,"Shell Script Error:" + $StdErr)
+            }
+          </PSScriptBody>
+          <FilterExpression>
+            <RegExExpression>
+              <ValueExpression>
+                <XPathQuery>Property[@Name='Size']</XPathQuery>
+              </ValueExpression>
+              <Operator>MatchesRegularExpression</Operator>
+              <Pattern>^[0-9]</Pattern>
+            </RegExExpression>
+          </FilterExpression>
+          <ClassId>$MPElement[Name="Linux.NFS.Mountpoint.Class"]$</ClassId>
+          <InstanceSettings>
+            <Settings>
+              <Setting>
+                <Name>$MPElement[Name='MUL!Microsoft.Unix.Computer']/PrincipalName$</Name>
+                <Value>$Target/Property[Type="MUL!Microsoft.Unix.Computer"]/PrincipalName$</Value>
+              </Setting>
+              <Setting>
+                <Name>$MPElement[Name='MUL!Microsoft.Unix.LogicalDevice']/DeviceName$</Name>
+                <Value>$Data/Property[@Name='Path']$</Value>
+              </Setting>
+              <Setting>
+                <Name>$MPElement[Name='MUL!Microsoft.Unix.LogicalDevice']/DeviceID$</Name>
+                <Value>$Data/Property[@Name='Path']$</Value>
+              </Setting>
+              <Setting>
+                <Name>$MPElement[Name='MUL!Microsoft.Unix.LogicalDisk']/FileSystem$</Name>
+                <Value>NFS</Value>
+              </Setting>
+              <Setting>
+                <Name>$MPElement[Name='MUL!Microsoft.Unix.LogicalDisk']/Compressed$</Name>
+                <Value>NA</Value>
+              </Setting>
+              <Setting>
+                <Name>$MPElement[Name='MUL!Microsoft.Unix.LogicalDisk']/Size$</Name>
+                <Value>$Data/Property[@Name='Size']$</Value>
+              </Setting>
+              <Setting>
+                <Name>$MPElement[Name='Linux.NFS.Mountpoint.Class']/NFSFileSystem$</Name>
+                <Value>$Data/Property[@Name='FileSystem']$</Value>
+              </Setting>
+              <Setting>
+                <Name>$MPElement[Name='System!System.Entity']/DisplayName$</Name>
+                <Value>$Data/Property[@Name='Path']$</Value>
+              </Setting>
+            </Settings>
+          </InstanceSettings>
+        </DataSource>
+      </Discovery>
+    </Discoveries>
+    <Rules>
+      <Rule ID="Linux.NFS.Mountpoint.UsedSpace.Percentage.Collection" Enabled="true" Target="Linux.NFS.Seed.Computer.Class" ConfirmDelivery="false" Remotable="true" Priority="Normal" DiscardLevel="100">
+        <Category>PerformanceHealth</Category>
+        <DataSources>
+          <DataSource ID="DS" TypeID="UAL!Unix.Authoring.TimedShellCommand.PropertyBag.DataSource">
+            <Interval>900</Interval>
+            <TargetSystem>$Target/Property[Type="MUL!Microsoft.Unix.Computer"]/NetworkName$</TargetSystem>
+            <ShellCommand>df -kTt nfs4 | awk -F ' nfs4' '{printf \"\\\"%s\\\"\",\$1} {print \$2}' | awk -F\\\" '{for(i=1;i&amp;lt;=NF;i+=2)gsub(/[[:blank:]]/,\",\",\$i)}1' OFS=\\\" | tr -s ',' | awk -F \",\" '{print \$6 \",\" \$5 \",\" \$1}' | tr -d \"\\\"\" | tail -n +2</ShellCommand>
+            <Timeout>60</Timeout>
+            <UserName>$RunAs[Name="MUL!Microsoft.Unix.ActionAccount"]/UserName$</UserName>
+            <Password>$RunAs[Name="MUL!Microsoft.Unix.ActionAccount"]/Password$</Password>
+            <PSScriptName>UsedPercentageCollection.ps1</PSScriptName>
+            <PSScriptBody>
+
+              param([string]$StdOut,[string]$StdErr,[string]$ReturnCode)
+              $api = New-Object -comObject 'MOM.ScriptAPI'
+              if ($ReturnCode -eq "0")
+              {
+				  foreach ($line in $StdOut.Split("`n"))
+				  {
+					  $row=$line.Split(",")
+					  $sName=$row[0].Trim()
+					  $sValue=$row[1].replace("%","")
+					  
+
+					  if ($sValue -ne $null){
+						  $bag = $api.CreatePropertyBag()
+						  $bag.AddValue("CounterName",$sName)
+						  $bag.AddValue("CounterValue",$sValue)
+						  $bag
+					  }
+				  }
+              }
+              Else
+              {
+				$api.LogScriptEvent("UsedPercentageCollection.ps1",1000,2,"Shell Script Error:" + $StdErr)
+              }
+            </PSScriptBody>
+            <FilterExpression>
+              <RegExExpression>
+                <ValueExpression>
+                  <XPathQuery>Property[@Name='CounterName']</XPathQuery>
+                </ValueExpression>
+                <Operator>MatchesRegularExpression</Operator>
+                <Pattern>^[/]</Pattern>
+              </RegExExpression>
+            </FilterExpression>
+          </DataSource>
+        </DataSources>
+        <ConditionDetection ID="Mapper" TypeID="Perf!System.Performance.DataGenericMapper">
+          <ObjectName>NFS Mount Point</ObjectName>
+          <CounterName>Used Percentage</CounterName>
+          <InstanceName>$Data/Property[@Name='CounterName']$</InstanceName>
+          <Value>$Data/Property[@Name='CounterValue']$</Value>
+        </ConditionDetection>
+        <WriteActions>
+          <WriteAction ID="WriteToDB" TypeID="SC!Microsoft.SystemCenter.CollectPerformanceData" />
+          <WriteAction ID="WriteToDW" TypeID="MSDL!Microsoft.SystemCenter.DataWarehouse.PublishPerformanceData" />
+        </WriteActions>
+      </Rule>
+      <Rule ID="Linux.NFS.Mountpoint.UsedSpace.KBytes.Collection" Enabled="true" Target="MSL!Microsoft.Linux.Computer" ConfirmDelivery="false" Remotable="true" Priority="Normal" DiscardLevel="100">
+        <Category>PerformanceHealth</Category>
+        <DataSources>
+          <DataSource ID="DS" TypeID="UAL!Unix.Authoring.TimedShellCommand.PropertyBag.DataSource">
+            <Interval>900</Interval>
+            <TargetSystem>$Target/Property[Type="MUL!Microsoft.Unix.Computer"]/NetworkName$</TargetSystem>
+            <ShellCommand>df -kTt nfs4 | awk -F ' nfs4' '{printf \"\\\"%s\\\"\",\$1} {print \$2}' | awk -F\\\" '{for(i=1;i&amp;lt;=NF;i+=2)gsub(/[[:blank:]]/,\",\",\$i)}1' OFS=\\\" | tr -s ',' | awk -F \",\" '{print \$6 \",\" \$3 \",\" \$1}' | tr -d \"\\\"\" | tail -n +2</ShellCommand>
+            <Timeout>60</Timeout>
+            <UserName>$RunAs[Name="MUL!Microsoft.Unix.ActionAccount"]/UserName$</UserName>
+            <Password>$RunAs[Name="MUL!Microsoft.Unix.ActionAccount"]/Password$</Password>
+            <PSScriptName>UsedPercentageCollection.ps1</PSScriptName>
+            <PSScriptBody>
+              param([string]$StdOut,[string]$StdErr,[string]$ReturnCode)
+              $api = New-Object -comObject 'MOM.ScriptAPI'
+              if ($ReturnCode -eq "0")
+              {
+				  foreach ($line in $StdOut.Split("`n"))
+				  {
+					  $row=$line.Split(",")
+					  $sName=$row[0].Trim()
+					  $sValue=$row[1].replace("%","")
+
+
+					  if ($sValue -ne $null)
+					  {
+						  $bag = $api.CreatePropertyBag()
+						  $bag.AddValue("CounterName",$sName)
+						  $bag.AddValue("CounterValue",$sValue)
+						  $bag
+					  }
+				  }
+              }
+              Else
+              {
+              $api.LogScriptEvent("UsedPercentageCollection.ps1",1000,2,"Shell Script Error:" + $StdErr)
+              }  
+			</PSScriptBody>
+            <FilterExpression>
+              <RegExExpression>
+                <ValueExpression>
+                  <XPathQuery>Property[@Name='CounterName']</XPathQuery>
+                </ValueExpression>
+                <Operator>MatchesRegularExpression</Operator>
+                <Pattern>^[/]</Pattern>
+              </RegExExpression>
+            </FilterExpression>
+          </DataSource>
+        </DataSources>
+        <ConditionDetection ID="Mapper" TypeID="Perf!System.Performance.DataGenericMapper">
+          <ObjectName>NFS Mount Point</ObjectName>
+          <CounterName>Used Kbytes</CounterName>
+          <InstanceName>$Data/Property[@Name='CounterName']$</InstanceName>
+          <Value>$Data/Property[@Name='CounterValue']$</Value>
+        </ConditionDetection>
+        <WriteActions>
+          <WriteAction ID="WriteToDB" TypeID="SC!Microsoft.SystemCenter.CollectPerformanceData" />
+          <WriteAction ID="WriteToDW" TypeID="MSDL!Microsoft.SystemCenter.DataWarehouse.PublishPerformanceData" />
+        </WriteActions>
+      </Rule>
+      <Rule ID="Linux.NFS.Mountpoint.AvailableSpace.KBytes.Collection" Enabled="true" Target="Linux.NFS.Seed.Computer.Class" ConfirmDelivery="false" Remotable="true" Priority="Normal" DiscardLevel="100">
+        <Category>PerformanceHealth</Category>
+        <DataSources>
+          <DataSource ID="DS" TypeID="UAL!Unix.Authoring.TimedShellCommand.PropertyBag.DataSource">
+            <Interval>900</Interval>
+            <TargetSystem>$Target/Property[Type="MUL!Microsoft.Unix.Computer"]/NetworkName$</TargetSystem>
+            <ShellCommand>df -kTt nfs4 | awk -F ' nfs4' '{printf \"\\\"%s\\\"\",\$1} {print \$2}' | awk -F\\\" '{for(i=1;i&amp;lt;=NF;i+=2)gsub(/[[:blank:]]/,\",\",\$i)}1' OFS=\\\" | tr -s ',' | awk -F \",\" '{print \$6 \",\" \$4 \",\" \$1}' | tr -d \"\\\"\" | tail -n +2</ShellCommand>
+            <Timeout>60</Timeout>
+            <UserName>$RunAs[Name="MUL!Microsoft.Unix.ActionAccount"]/UserName$</UserName>
+            <Password>$RunAs[Name="MUL!Microsoft.Unix.ActionAccount"]/Password$</Password>
+            <PSScriptName>UsedPercentageCollection.ps1</PSScriptName>
+            <PSScriptBody>
+              param([string]$StdOut,[string]$StdErr,[string]$ReturnCode)
+              $api = New-Object -comObject 'MOM.ScriptAPI'
+              if ($ReturnCode -eq "0")
+              {
+				  foreach ($line in $StdOut.Split("`n"))
+				  {
+					  $row=$line.Split(",")
+					  $sName=$row[0].Trim()
+					  $sValue=$row[1].replace("%","")
+
+
+					  if ($sValue -ne $null)
+					  {
+						  $bag = $api.CreatePropertyBag()
+						  $bag.AddValue("CounterName",$sName)
+						  $bag.AddValue("CounterValue",$sValue)
+						  $bag
+					  }
+				  }
+              }
+              Else
+              {
+				$api.LogScriptEvent("UsedPercentageCollection.ps1",1000,2,"Shell Script Error:" + $StdErr)
+              }
+			</PSScriptBody>
+            <FilterExpression>
+              <RegExExpression>
+                <ValueExpression>
+                  <XPathQuery>Property[@Name='CounterName']</XPathQuery>
+                </ValueExpression>
+                <Operator>MatchesRegularExpression</Operator>
+                <Pattern>^[/]</Pattern>
+              </RegExExpression>
+            </FilterExpression>
+          </DataSource>
+        </DataSources>
+        <ConditionDetection ID="Mapper" TypeID="Perf!System.Performance.DataGenericMapper">
+          <ObjectName>NFS Mount Point</ObjectName>
+          <CounterName>Available Kbytes</CounterName>
+          <InstanceName>$Data/Property[@Name='CounterName']$</InstanceName>
+          <Value>$Data/Property[@Name='CounterValue']$</Value>
+        </ConditionDetection>
+        <WriteActions>
+          <WriteAction ID="WriteToDB" TypeID="SC!Microsoft.SystemCenter.CollectPerformanceData" />
+          <WriteAction ID="WriteToDW" TypeID="MSDL!Microsoft.SystemCenter.DataWarehouse.PublishPerformanceData" />
+        </WriteActions>
+      </Rule>
+    </Rules>
+    <Monitors>
+	<UnitMonitor ID="Linux.NFS.Mountpoint.Freespace.ThreeState.Monitor" Accessibility="Public" Enabled="true" Target="Linux.NFS.Mountpoint.Class" ParentMonitorID="Health!System.Health.PerformanceState" Remotable="true" Priority="Normal" TypeID="UAL!Unix.Authoring.ShellCommand.PropertyBag.GreaterThanThreshold.ThreeState.MonitorType" ConfirmDelivery="false">
+        <Category>AvailabilityHealth</Category>
+        <AlertSettings AlertMessage="Linux.NFS.Mountpoint.Freespace.ThreeState.Monitor.AlertMessage">
+          <AlertOnState>Warning</AlertOnState>
+          <AutoResolve>true</AutoResolve>
+          <AlertPriority>Normal</AlertPriority>
+          <AlertSeverity>MatchMonitorHealth</AlertSeverity>
+          <AlertParameters>
+            <AlertParameter1>$Data/Context/Property[@Name='CounterName']$</AlertParameter1>
+            <AlertParameter2>$Data/Context/Property[@Name='CounterValue']$</AlertParameter2>
+            <AlertParameter3>$Data/Context/Property[@Name='CounterFileSystem']$</AlertParameter3>
+          </AlertParameters>
+        </AlertSettings>
+        <OperationalStates>
+          <OperationalState ID="StatusOK" MonitorTypeStateID="StatusOK" HealthState="Success" />
+          <OperationalState ID="StatusWarning" MonitorTypeStateID="StatusWarning" HealthState="Warning" />
+          <OperationalState ID="StatusError" MonitorTypeStateID="StatusError" HealthState="Error" />
+        </OperationalStates>
+        <Configuration>
+          <Interval>300</Interval>
+          <TargetSystem>$Target/Host/Property[Type="MUL!Microsoft.Unix.Computer"]/NetworkName$</TargetSystem>
+          <ShellCommand>df -kTt nfs4 | awk -F ' nfs4' '{printf \"\\\"%s\\\"\",\$1} {print \$2}' | awk -F\\\" '{for(i=1;i&amp;lt;=NF;i+=2)gsub(/[[:blank:]]/,\",\",\$i)}1' OFS=\\\" | tr -s ',' | awk -F \",\" '{print \$6 \",\" \$5 \",\" \$1}' | tr -d \"\\\"\" | tail -n +2</ShellCommand>
+          <Timeout>60</Timeout>
+          <UserName>$RunAs[Name="MUL!Microsoft.Unix.ActionAccount"]/UserName$</UserName>
+          <Password>$RunAs[Name="MUL!Microsoft.Unix.ActionAccount"]/Password$</Password>
+          <PSScriptName>NFSMointpointCheckFreeSpace.ps1</PSScriptName>
+          <PSScriptBody>
+            param([string]$StdOut,[string]$StdErr,[string]$ReturnCode)
+            $api = New-Object -comObject 'MOM.ScriptAPI'
+            if ($ReturnCode -eq "0")
+            {
+				foreach ($line in $StdOut.Split("`n"))
+				{
+					$row=$line.Split(",")
+					$sName=$row[0].Trim()
+					$sValue=$row[1].replace("%","")
+					$sFileSystem=$row[2].Trim()
+
+					if ($sValue -ne $null)
+					{
+						$bag = $api.CreatePropertyBag()
+						$bag.AddValue("CounterName",$sName)
+						$bag.AddValue("CounterValue",$sValue)
+						$bag.AddValue("CounterFileSystem",$sFileSystem)
+						$bag
+					}
+				}
+            }
+            Else
+            {
+				$api.LogScriptEvent("NFSMointpointCheckFreeSpace.ps1",1000,2,"Shell Script Error:" + $StdErr)
+            }
+		  </PSScriptBody>
+          <FilterExpression>
+            <SimpleExpression>
+              <ValueExpression>
+                <XPathQuery>Property[@Name='CounterName']</XPathQuery>
+              </ValueExpression>
+              <Operator>Equal</Operator>
+              <ValueExpression>
+                <Value>$Target/Property[Type="MUL!Microsoft.Unix.LogicalDevice"]/DeviceName$</Value>
+              </ValueExpression>
+            </SimpleExpression>
+          </FilterExpression>
+          <ValueXPath>Property[@Name='CounterValue']</ValueXPath>
+          <WarningThreshold>80</WarningThreshold>
+          <ErrorThreshold>90</ErrorThreshold>
+        </Configuration>
+      </UnitMonitor>
+    </Monitors>
+  </Monitoring>
+  <Presentation>
+    <Views>
+      <View ID="Linux.NFS.MountPoint.Health.DashboardView" Accessibility="Public" Enabled="true" Target="Linux.NFS.Mountpoint.Class" TypeID="SC!Microsoft.SystemCenter.DashboardViewType" Visible="true">
+        <Category>Operations</Category>
+        <PanelConfiguration Columns="1" Rows="2">
+          <Cell Column="1" Row="1" ViewID="Linux.NFS.MountPoint.StateView" />
+          <Cell Column="1" Row="2" ViewID="Linux.NFS.MountPoint.AlertView" />
+        </PanelConfiguration>
+      </View>
+      <View ID="Linux.NFS.MountPoint.StateView" Accessibility="Public" Enabled="true" Target="Linux.NFS.Mountpoint.Class" TypeID="SC!Microsoft.SystemCenter.StateViewType" Visible="true">
+        <Category>Operations</Category>
+        <Criteria>
+          <InMaintenanceMode>false</InMaintenanceMode>
+        </Criteria>
+        <Presentation>
+          <ColumnInfo Index="0" SortIndex="0" Width="100" Grouped="false" Sorted="true" IsSortable="true" Visible="true" SortOrder="Descending">
+            <Name>State</Name>
+            <Id>Linux.NFS.Mountpoint.Class</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="1" SortIndex="-1" Width="23" Grouped="false" Sorted="false" IsSortable="true" Visible="true" SortOrder="Ascending">
+            <Name>Maintenance Mode</Name>
+            <Id>InMaintenanceMode</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="2" SortIndex="1" Width="300" Grouped="false" Sorted="true" IsSortable="true" Visible="true" SortOrder="Ascending">
+            <Name>Path</Name>
+            <Id>Path</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="3" SortIndex="2" Width="300" Grouped="false" Sorted="true" IsSortable="true" Visible="true" SortOrder="Ascending">
+            <Name>Name</Name>
+            <Id>Name</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="4" SortIndex="-1" Width="300" Grouped="false" Sorted="false" IsSortable="true" Visible="true" SortOrder="Ascending">
+            <Name>File System</Name>
+            <Id>FileSystem</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="5" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="true" Visible="true" SortOrder="Ascending">
+            <Name>Size (Bytes)</Name>
+            <Id>Size</Id>
+          </ColumnInfo>
+        </Presentation>
+      </View>
+      <View ID="Linux.NFS.MountPoint.AlertView" Accessibility="Public" Enabled="true" Target="Linux.NFS.Mountpoint.Class" TypeID="SC!Microsoft.SystemCenter.AlertViewType" Visible="true">
+        <Category>Operations</Category>
+        <Criteria>
+          <ResolutionState>
+            <State>0</State>
+          </ResolutionState>
+        </Criteria>
+        <Presentation>
+          <ColumnInfo Index="0" SortIndex="0" Width="22" Grouped="true" Sorted="false" IsSortable="true" Visible="true" SortOrder="Ascending">
+            <Name>Severity</Name>
+            <Id>Severity</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="1" SortIndex="-1" Width="54" Grouped="false" Sorted="false" IsSortable="false" Visible="true" SortOrder="Ascending">
+            <Name>Icon</Name>
+            <Id>Icon</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="2" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="true" Visible="true" SortOrder="Ascending">
+            <Name>Source</Name>
+            <Id>MonitoringObjectDisplayName</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="3" SortIndex="-1" Width="22" Grouped="false" Sorted="false" IsSortable="true" Visible="true" SortOrder="Ascending">
+            <Name>Maintenance Mode</Name>
+            <Id>MonitoringObjectInMaintenanceMode</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="4" SortIndex="-1" Width="250" Grouped="false" Sorted="false" IsSortable="true" Visible="true" SortOrder="Ascending">
+            <Name>Name</Name>
+            <Id>Name</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="5" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="true" Visible="true" SortOrder="Ascending">
+            <Name>Resolution State</Name>
+            <Id>ResolutionState</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="6" SortIndex="1" Width="150" Grouped="false" Sorted="true" IsSortable="true" Visible="true" SortOrder="Descending">
+            <Name>Created</Name>
+            <Id>TimeRaised</Id>
+          </ColumnInfo>
+          <ColumnInfo Index="7" SortIndex="-1" Width="100" Grouped="false" Sorted="false" IsSortable="true" Visible="true" SortOrder="Ascending">
+            <Name>Age</Name>
+            <Id>Age</Id>
+          </ColumnInfo>
+        </Presentation>
+      </View>
+      <View ID="Linux.NFS.MountPoint.PercentageUsed.PerfView" Accessibility="Public" Enabled="true" Target="MSL!Microsoft.Linux.Computer" TypeID="SC!Microsoft.SystemCenter.PerformanceViewType" Visible="false">
+        <Category>Operations</Category>
+        <Criteria>
+          <Object>NFS Mount Point</Object>
+          <Instance />
+          <Counter>Used Percentage</Counter>
+        </Criteria>
+        <Presentation>
+          <IsDynamic>true</IsDynamic>
+        </Presentation>
+      </View>
+      <View ID="Linux.NFS.MountPoint.KbytesUsed.PerfView" Accessibility="Public" Enabled="true" Target="MSL!Microsoft.Linux.Computer" TypeID="SC!Microsoft.SystemCenter.PerformanceViewType" Visible="false">
+        <Category>Operations</Category>
+        <Criteria>
+          <Object>NFS Mount Point</Object>
+          <Instance />
+          <Counter>Used Kbytes</Counter>
+        </Criteria>
+        <Presentation>
+          <IsDynamic>true</IsDynamic>
+        </Presentation>
+      </View>
+      <View ID="Linux.NFS.MountPoint.KbytesFree.PerfView" Accessibility="Public" Enabled="true" Target="MSL!Microsoft.Linux.Computer" TypeID="SC!Microsoft.SystemCenter.PerformanceViewType" Visible="false">
+        <Category>Operations</Category>
+        <Criteria>
+          <Object>NFS Mount Point</Object>
+          <Instance />
+          <Counter>Available Kbytes</Counter>
+        </Criteria>
+        <Presentation>
+          <IsDynamic>true</IsDynamic>
+        </Presentation>
+      </View>
+      <View ID="Linux.NFS.MountPoint.Capacity.DashboardView" Accessibility="Public" Enabled="true" Target="MSL!Microsoft.Linux.Computer" TypeID="SC!Microsoft.SystemCenter.DashboardViewType" Visible="true">
+        <Category>Operations</Category>
+        <PanelConfiguration Columns="1" Rows="3">
+          <Cell Column="1" Row="1" ViewID="Linux.NFS.MountPoint.PercentageUsed.PerfView" />
+          <Cell Column="1" Row="2" ViewID="Linux.NFS.MountPoint.KbytesUsed.PerfView" />
+          <Cell Column="1" Row="3" ViewID="Linux.NFS.MountPoint.KbytesFree.PerfView" />
+        </PanelConfiguration>
+      </View>
+    </Views>
+    <FolderItems>
+      <FolderItem ElementID="Linux.NFS.MountPoint.Health.DashboardView" ID="Linux.NFS.MountPoint.Health.DashboardView" Folder="MSL!Microsoft.Linux.ViewFolder.Health" />
+      <FolderItem ElementID="Linux.NFS.MountPoint.StateView" ID="Linux.NFS.MountPoint.StateView" Folder="MSL!Microsoft.Linux.ViewFolder.Root" />
+      <FolderItem ElementID="Linux.NFS.MountPoint.Capacity.DashboardView" ID="Linux.NFS.MountPoint.Capacity.DashboardView" Folder="MSL!Microsoft.Linux.ViewFolder.Performance" />
+    </FolderItems>
+    <StringResources>
+      <StringResource ID="Linux.NFS.Mountpoint.Freespace.ThreeState.Monitor.AlertMessage" />
+    </StringResources>
+  </Presentation>
+  <LanguagePacks>
+    <LanguagePack ID="ENU" IsDefault="true">
+      <DisplayStrings>
+        <DisplayString ElementID="Linux.NFS.Agnostic">
+          <Name>Linux NFS Monitoring</Name>
+          <Description>This is a custom ManagementPack developed by community to monitor Linux NFS Mount Points</Description>
+        </DisplayString>
+        <DisplayString ElementID="Linux.NFS.Mountpoint.Class">
+          <Name>Linux NFS Class</Name>
+        </DisplayString>
+        <DisplayString ElementID="Linux.NFS.Mountpoint.Class" SubElementID="NFSFileSystem">
+          <Name>NFS File System</Name>
+        </DisplayString>
+        <DisplayString ElementID="Linux.NFS.Mountpoint.Freespace.ThreeState.Monitor">
+          <Name>Linux NFS Mountpoint Freespace Monitor</Name>
+        </DisplayString>
+        <DisplayString ElementID="Linux.NFS.Mountpoint.Freespace.ThreeState.Monitor" SubElementID="StatusOK">
+          <Name>NFS Mountpoint Freespace Monitor is under Threshold</Name>
+        </DisplayString>
+        <DisplayString ElementID="Linux.NFS.Mountpoint.Freespace.ThreeState.Monitor" SubElementID="StatusWarning">
+          <Name>NFS Mountpoint Freespace  Monitor is over Warning Threshold</Name>
+        </DisplayString>
+        <DisplayString ElementID="Linux.NFS.Mountpoint.Freespace.ThreeState.Monitor" SubElementID="StatusError">
+          <Name>NFS Mountpoint Freespace  Monitor is over Error Threshold</Name>
+        </DisplayString>
+        <DisplayString ElementID="Linux.NFS.Mountpoint.Freespace.ThreeState.Monitor.AlertMessage">
+          <Name>NFS Free Space is running Low</Name>
+          <Description>The threshold for the Free Space performance counter has been exceeded. The values that exceeded the threshold are:
+            NFS Mount Point: {0}
+            Used Space: {1} %
+			NFS File System: {2}</Description>
+        </DisplayString>
+        <DisplayString ElementID="Linux.NFS.Mountpoint.UsedSpace.Percentage.Collection">
+          <Name>Linux NFS Mount point used space percentage collection rule</Name>
+        </DisplayString>
+        <DisplayString ElementID="Linux.NFS.Mountpoint.AvailableSpace.KBytes.Collection">
+          <Name>Linux NFS Mount point Available space Kbytes collection rule</Name>
+        </DisplayString>
+        <DisplayString ElementID="Linux.NFS.Mountpoint.UsedSpace.KBytes.Collection">
+          <Name>Linux NFS Mount point used space Kbytes collection rule</Name>
+        </DisplayString>
+        <DisplayString ElementID="Linux.NFS.MountPoint.Health.DashboardView">
+          <Name>NFS Mount Point Health</Name>
+          <Description>This dashboard view displays NFS Mount Point health.</Description>
+        </DisplayString>
+        <DisplayString ElementID="Linux.NFS.MountPoint.StateView">
+          <Name>NFS Mount Point State</Name>
+          <Description>This State View will display State and Attributes for the associated class(s).</Description>
+        </DisplayString>
+        <DisplayString ElementID="Linux.NFS.MountPoint.AlertView">
+          <Name>NFS Mount Point Alerts</Name>
+          <Description>This Alert View will display Alerts for the associated class(s).</Description>
+        </DisplayString>
+        <DisplayString ElementID="Linux.NFS.MountPoint.PercentageUsed.PerfView">
+          <Name>NFS Used Space Percentage Performance</Name>
+        </DisplayString>
+        <DisplayString ElementID="Linux.NFS.MountPoint.KbytesUsed.PerfView">
+          <Name>NFS Kbytes Used Performance</Name>
+        </DisplayString>
+        <DisplayString ElementID="Linux.NFS.MountPoint.KbytesFree.PerfView">
+          <Name>NFS Kbytes free Performance</Name>
+        </DisplayString>
+        <DisplayString ElementID="Linux.NFS.MountPoint.Capacity.DashboardView">
+          <Name>NFS Mount Point Capacity</Name>
+          <Description>This dashboard view displays capacity metrics for NFS Mount points.</Description>
+        </DisplayString>
+        <DisplayString ElementID="Linux.NFS.Mountpoint.Class.Discovery">
+          <Name>Linux.NFS.Mountpoint.Class.Discovery</Name>
+        </DisplayString>
+        <DisplayString ElementID="Linux.NFS.Seed.Computer.Class">
+          <Name>Linux NFS Seed Computer Class</Name>
+        </DisplayString>
+        <DisplayString ElementID="Linux.NFS.Seed.Computer.Class" SubElementID="AreNFSPresent">
+          <Name>Are NFS Present</Name>
+        </DisplayString>
+        <DisplayString ElementID="Linux.NFS.Seed.Computer.Class.Discovery">
+          <Name>Linux NFS Seed Computer Class Discovery</Name>
+        </DisplayString>
+      </DisplayStrings>
+    </LanguagePack>
+  </LanguagePacks>
+</ManagementPack>
