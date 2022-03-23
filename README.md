@@ -1,4 +1,4 @@
-# Linux.CIFS.Agnostic
+# Linux.NFS.Agnostic
 
 SCOM Linux NFS Mount Point Management Pack helps you to discover the NFS Mounts on your Linux Machines
 
